@@ -1,10 +1,13 @@
 import React, { Component } from 'react';
-import mapImage from './mapImage.jpg';
-import './App.css';
-import network from './exampleNetwork.js'
+import upstairsMap from './upstairsMap.jpg';
+// import network from './exampleNetwork.js'
 import color from 'color'
+// import coordinates from './coordinates.js'
 
 const circleSize = 12
+const networkGraphEndpoint = 'http://192.168.254.31:2005/NetworkGraph'
+const coordinateEndpoint = 'http://192.168.254.31:2005/Coordinates'
+const refreshInterval = 1000
 
 const makeCoordMap = coordinates => coordinates.reduce((acc, item) => {
   acc[item.id] = item
@@ -27,127 +30,69 @@ const joinCoords = (coordMap, ng) => {
   })
 }
 
-const coordinates = [
-{
-  id: 15,
-  x: 442,
-  y: 402,
-},
-{
-  id: 1,
-  x: 372,
-  y: 487,
-},
-{
-  id: 4,
-  x: 382,
-  y: 552,
-},
-{
-  id: 14,
-  x: 422,
-  y: 552,
-},
-{
-  id: 10,
-  x: 509,
-  y: 509,
-},
-{
-  id: 12,
-  x: 538,
-  y: 482,
-},
-{
-  id: 11,
-  x: 687,
-  y: 552,
-},
-{
-  id: 3,
-  x: 723,
-  y: 552,
-},
-{
-  id: 13,
-  x: 837,
-  y: 500,
-},
-{
-  id: 2,
-  x: 872,
-  y: 500,
-},
-{
-  id: 6,
-  x: 135,
-  y: 482,
-},
-{
-  id: 7,
-  x: 139,
-  y: 553,
-},
-{
-  id: 8,
-  x: 63,
-  y: 510,
-},
-{
-  id: 9,
-  x: 20,
-  y: 560,
-},
-]
-
-const coordMap = makeCoordMap(coordinates)
-
-ipToId(network)
-joinCoords(coordMap, network)
-
 class App extends Component {
+  componentDidMount () {
+    const fetchAndUpdate = async () => {
+      const coordinates = await fetch(coordinateEndpoint)
+      const networkGraph = await fetch(networkGraphEndpoint)
+      this.setState({ networkGraph, coordinates })
+    }
+    fetchAndUpdate()
+    setInterval(fetchAndUpdate, refreshInterval)
+  }
+
   render() {
-    return (
-      <div className="App">
-        <img src={mapImage} style={{
-          width: 1000,
-          position: 'absolute',
-          top: 0,
-          left: 0
-        }}/>
-        <svg style={{
-          width: 1000,
-          height: 1000,
-          position: 'absolute',
-          top: 0,
-          left: 0
-        }}>
-        {network.links.map(({ source, target, cost }) => {
-          const alpha = (6 - cost) / 10
-          return coordMap[source] && coordMap[target] && <path
-            d={[
-              `M ${coordMap[source].x} ${coordMap[source].y}`,
-              `L ${coordMap[target].x} ${coordMap[target].y}`
-            ]}
-            stroke={color('#7743CE').mix(color('yellow'), cost / 5)}
-            opacity={0.5}
-            strokeWidth={6 - cost}
-            fill="none"
-          />
-        })}
-        {network.nodes.map(({ x, y, id }) =>
-          <g transform={`translate(${x}, ${y})`}>
-            <g transform={`translate(-12, -12)`}>
-              <circle id="Oval" stroke="#000000" fill="#F00" cx={circleSize} cy={circleSize} r={circleSize}></circle>
-              <text id="15" fontFamily="Arial-BoldMT, Arial" fontSize="14" fontWeight="bold" fill="#FFFFFF">
-                <tspan x="3" y="17">{id}</tspan>
-              </text>
+    const ng = this.state && this.state.networkGraph
+    const coords = this.state && this.state.coordinates
+    if (ng && coords) {
+      const coordMap = makeCoordMap(coords)
+      ipToId(ng)
+      joinCoords(coordMap, ng)
+
+      return (
+        <div className="App">
+          <img src={upstairsMap} style={{
+            width: 1000,
+            position: 'absolute',
+            top: 0,
+            left: 0
+          }}/>
+          <svg style={{
+            width: 1000,
+            height: 1000,
+            position: 'absolute',
+            top: 0,
+            left: 0
+          }}>
+          {ng.links.map(({ source, target, cost }) => {
+            const alpha = (6 - cost) / 10
+            return coordMap[source] && coordMap[target] && <path
+              d={[
+                `M ${coordMap[source].x} ${coordMap[source].y}`,
+                `L ${coordMap[target].x} ${coordMap[target].y}`
+              ]}
+              stroke={color('yellow').mix(color('purple'), cost / 5)}
+              opacity={0.5}
+              strokeWidth={6 - cost}
+              fill="none"
+            />
+          })}
+          {ng.nodes.map(({ x, y, id }) =>
+            coordMap[id] && <g transform={`translate(${x}, ${y})`}>
+              <g transform={`translate(-12, -12)`}>
+                <circle id="Oval" stroke="#000000" fill="#F00" cx={circleSize} cy={circleSize} r={circleSize}></circle>
+                <text id="15" fontFamily="Arial-BoldMT, Arial" fontSize="14" fontWeight="bold" fill="#FFFFFF">
+                  <tspan x="3" y="17">{id}</tspan>
+                </text>
+              </g>
             </g>
-          </g>
-        )}
-        </svg>
-      </div>
-    );
+          )}
+          </svg>
+        </div>
+      );
+    } else {
+      return <div>Could not load</div>
+    }
   }
 }
 
