@@ -6,7 +6,7 @@ import color from 'color'
 
 const circleSize = 12
 const networkGraphEndpoint = 'http://192.168.254.31:2005/NetworkGraph'
-const coordinateEndpoint = 'http://192.168.254.31:2005/Coordinates'
+const coordinateEndpoint = 'http://192.168.254.31/coordinates.json'
 const refreshInterval = 1000
 
 const makeCoordMap = coordinates => coordinates.reduce((acc, item) => {
@@ -33,8 +33,10 @@ const joinCoords = (coordMap, ng) => {
 class App extends Component {
   componentDidMount () {
     const fetchAndUpdate = async () => {
-      const coordinates = await fetch(coordinateEndpoint)
-      const networkGraph = await fetch(networkGraphEndpoint)
+      let req = await fetch(coordinateEndpoint)
+      const coordinates = await req.json()
+      req = await fetch(networkGraphEndpoint)
+      const networkGraph = await req.json()
       this.setState({ networkGraph, coordinates })
     }
     fetchAndUpdate()
@@ -45,6 +47,7 @@ class App extends Component {
     const ng = this.state && this.state.networkGraph
     const coords = this.state && this.state.coordinates
     if (ng && coords) {
+      console.log('foooOOOOOO', ng, coords)
       const coordMap = makeCoordMap(coords)
       ipToId(ng)
       joinCoords(coordMap, ng)
